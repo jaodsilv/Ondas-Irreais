@@ -1,5 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
+/*h(p,t)=(p-vt)e^(-(p-vt)^2-t/10)*/
+double h(double p, double t, unsigned int v) {
+  double d = p-v*t;
+  return d*exp(-d*d-t/10);
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -20,7 +28,7 @@ int main(int argc, char const *argv[])
     fscanf (pFile, "%Lf\n", &P);
     fscanf (pFile, "%u\n", &s);
     fclose (pFile);
-    timestep = ((long double) T)/ ((long double) N);
+    timestep = ((double) T)/ ((double) N);
     printf("(%d,%d)\n(%d,%d)\n%d\n%d\n%Lf\n%d\n%Lf\n%d\n%Lf\n%d\n", larg, alt, L, H, T, v, e, N, P, s, timestep, procs);
   }
   return 0;

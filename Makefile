@@ -1,8 +1,8 @@
 ondas-irreais: main.o
-	gcc -o ondas-irreais main.o -g
+	gcc -o ondas-irreais main.o -g -lm
 
 main.o: main.c
-	gcc -c main.c -o main.o -Wall -Wextra -pedantic -g
+	gcc -c main.c -o main.o -Wall -Wextra -pedantic -g -lm
 
 clean:
 	rm -rf *.o
