@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define updateDelta() delta = ((float) max(hmax, pmax))/255
+#define updateDelta() delta = fmaxf(hmax, pmax)/255
 #define value(h, d) (float) ceil(h/d)
+#define t(step, timestep) step*timestep
 
 typedef unsigned int ui;
 
@@ -18,11 +19,12 @@ typedef struct{
 } drop;
 
 /* Global Variables */
-ui larg, alt, L, H, T, v, N, s, steps, ndrops=0;
+ui larg, alt, L, H, T, v, N, s, steps, ndrops=0, pdistx, pdisty;
 int procs, **lake;
 Color **colors;
 drop *drops;
 float e, P, timestep, hmax, pmax, delta;
+FILE * PPMFile, averageFile;
 
 
 /*h(p,t)=(p-vt)e^(-(p-vt)^2-t/10)*/
@@ -34,12 +36,11 @@ float h(float p, float t)
 
 FILE * createPPM()
 {
-  FILE * pFile;
-  pFile = fopen ("out.ppm","w");
-  if (pFile!=NULL) {
-    fprintf(pFile, "P3\n%d %d\n255\n", larg, alt);
+  PPMFile = fopen ("out.ppm","w");
+  if (PPMFile!=NULL) {
+    fprintf(PPMFile, "P3\n%d %d\n255\n", larg, alt);
   }
-  return pFile;
+  return PPMFile;
 }
 
 void updatePoint(ui i, ui j)
@@ -49,6 +50,7 @@ void updatePoint(ui i, ui j)
   /* Paralelizável */
   for (k = 0; k < ndrops; ++k) {
     /* TODO for each drop calculate distance sqrt(dx^2+dy^2) from (i,j) */
+    /* TODO calculate before and store the distances between points and drops */
     /* TODO For each distance calculate h() and sum to height */
   }
   if (height < e && height > -e) {
@@ -60,7 +62,7 @@ void updatePoint(ui i, ui j)
   lake[i][j] = height;
 }
 
-void updateColor(int i, int j)
+void PPM(int i, int j)
 {
   if (lake[i][j] > 0) {
     colors[i][j].red = 0;
@@ -69,6 +71,8 @@ void updateColor(int i, int j)
     colors[i][j].blue = 0;
     colors[i][j].red = value(lake[i][j], delta);
   }
+
+  /* TODO print color to PPMFile R G B */
 }
 
 int main(int argc, char const *argv[])
@@ -98,6 +102,17 @@ int main(int argc, char const *argv[])
     drops = (drop*) malloc (N*sizeof(drop));
 
     for (steps = 0; steps < N; ++steps) { /* Paralelizável, mas prioridade baixa */
+      pmax = 0;
+      hmax = 0;
+
+      /* Atualiza os pontos */
+      for(i = 0; i < larg; ++i) { /* Paralelizável */
+        for (j = 0; j < alt; ++j) { /* Paralelizável */
+          updatePoint(i, j);
+        }
+      }
+
+      /* Add drops */
       if (((float) rand())/RAND_MAX < P) {
         drop d;
         d.x = rand()%L;
@@ -106,12 +121,17 @@ int main(int argc, char const *argv[])
         drops[ndrops++] = d;
       }
 
-      /* Atualiza os pontos */
-      for(i = 0; i < larg; ++i) { /* Paralelizável */
-        for (j = 0; j < alt; ++j) { /* Paralelizável */
-          updatePoint(i, j);
-        }
+    }
+
+    updateDelta();
+
+    createPPM();
+    /* TODO Calculate Average and STDDEV */
+    for(i = 0; i < larg; ++i) { /* Paralelizável */
+      for (j = 0; j < alt; ++j) { /* Paralelizável */
+        PPM(i, j);
       }
+      /* TODO print \n to PPMFile */
     }
   }
   return 0;
