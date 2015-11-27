@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define value(h, d) (int) ceil(fabs(h)/d)
 #define t(step, timestep) step*timestep
 
 typedef unsigned int ui;
@@ -37,7 +36,7 @@ void createOutputFiles()
   PPMFile = fopen ("out.ppm","w");
   averageFile = fopen ("out.txt","w");
   if (PPMFile!=NULL) {
-    fprintf(PPMFile, "P3\n%d %d\n255\n", larg, alt);
+    fprintf(PPMFile, "P3\n%d %d\n255\n", L, H);
   }
 }
 
@@ -74,16 +73,21 @@ void updatePoint(ui i, ui j)
 
 void evaluatePointForPPM(ui i, ui j)
 {
-  if (lake[i][j] > 0) {
+  if (delta == 0)
     if (j == 0)
-      fprintf(PPMFile, "0 0 %d", value(lake[i][j], delta));
+      fprintf(PPMFile, "0 0 0");
     else
-      fprintf(PPMFile, " 0 0 %d", value(lake[i][j], delta));
+      fprintf(PPMFile, " 0 0 0");
+  else if (lake[i][j] > 0) {
+    if (j == 0)
+      fprintf(PPMFile, "0 0 %d", (int) ceil(lake[i][j]/delta));
+    else
+      fprintf(PPMFile, " 0 0 %d", (int) ceil(lake[i][j]/delta));
   } else {
     if (j == 0)
-      fprintf(PPMFile, "%d 0 0", value(lake[i][j], delta));
+      fprintf(PPMFile, "%d 0 0", (int) ceil(-lake[i][j]/delta));
     else
-      fprintf(PPMFile, " %d 0 0", value(lake[i][j], delta));
+      fprintf(PPMFile, " %d 0 0", (int) ceil(-lake[i][j]/delta));
   }
 
 }
