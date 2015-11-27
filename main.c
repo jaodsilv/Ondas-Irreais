@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define value(h, d) (int) ceil(h/d)
+#define value(h, d) (int) ceil(fabs(h)/d)
 #define t(step, timestep) step*timestep
 
 typedef unsigned int ui;
@@ -18,10 +18,10 @@ typedef struct{
 
 /* Global Variables */
 ui larg, alt, L, H, T, v, N, s, steps, ndrops=0, pdistx, pdisty;
-int procs, **lake;
+int procs;
 drop *drops;
 Point **points;
-float e, P, timestep, hmax, pmax, delta;
+float e, P, timestep, hmax, pmax, delta, **lake;
 FILE *PPMFile, *averageFile;
 
 
@@ -61,8 +61,12 @@ void updatePoint(ui i, ui j)
     lake[i][j] = 0;
     return;
   }
-  if (height > hmax) hmax = height;
-  else if (-height > pmax) pmax = height;
+  if (height > hmax) {
+    hmax = height;
+  }
+  else if (-height > pmax) {
+    pmax = -height;
+  }
   lake[i][j] = height;
   points[i][j].average += height;
   points[i][j].sqrSum += height*height;
@@ -87,7 +91,6 @@ void evaluatePointForPPM(ui i, ui j)
 int main(int argc, char const *argv[])
 {
   FILE * pFile;
-  ui i, j;
   if (argc != 3) {
     printf("Wrong number of arguments\n");
     return 1;
@@ -95,17 +98,20 @@ int main(int argc, char const *argv[])
   pFile = fopen (argv[1],"r");
   if (pFile!=NULL)
   {
+    ui i, j;
     procs = atoi(argv[2]);
-    fscanf (pFile, "(%u,%u)\n(%u,%u)\n%u\n%u\n%f\n%u\n%f\n%u\n", &larg, &alt, &L, &H, &T, &v, &e, &N, &P, &s);
+    fscanf (pFile, "(%u,%u)\n(%u,%u)\n", &larg, &alt, &L, &H);
+    fscanf (pFile, "%u\n%u\n%f\n%u\n%f\n%u\n", &T, &v, &e, &N, &P, &s);
     fclose (pFile);
     timestep = ((float) T)/ ((float) N);
+    P /= 100;
     srand(s);
 
     /* Mallocs */
-    lake = (int**) malloc (L*sizeof(int*));
+    lake = (float**) malloc (L*sizeof(float*));
     points = (Point**) malloc (L*sizeof(Point*));
     for (i = 0; i < L; ++i) {
-      lake[i] = (int*) malloc (H*sizeof(int));
+      lake[i] = (float*) malloc (H*sizeof(float));
       points[i] = (Point*) malloc (H*sizeof(Point));
     }
     drops = (drop*) malloc (N*sizeof(drop));
@@ -134,20 +140,17 @@ int main(int argc, char const *argv[])
         d.step = steps;
         drops[ndrops++] = d;
       }
-
     }
 
     delta = fmaxf(hmax, pmax)/255;
 
-
     createOutputFiles();
     for(i = 0; i < L; ++i) { /* Paralelizável */
       for (j = 0; j < H; ++j) { /* Paralelizável */
-
         evaluatePointForPPM(i, j);
         /* Average and StdDev */
         points[i][j].average /= N;
-        fprintf(averageFile, "%d %d %12.7f %f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
+        fprintf(averageFile, "%d %d %12.7f %12.7f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
       }
       fprintf(PPMFile, "\n");
     }
