@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 
 #define t(step, timestep) step*timestep
 
@@ -125,14 +126,17 @@ int main(int argc, char const *argv[])
     pdisty = (float) alt / (float) H;
 
     for (steps = 0; steps < N; ++steps) { /* Paralelizável, mas prioridade baixa */
-
       pmax = 0;
       hmax = 0;
 
       /* Atualiza os pontos */
-      for(i = 0; i < L; ++i) { /* Paralelizável */
-        for (j = 0; j < H; ++j) { /* Paralelizável */
-          updatePoint(i, j);
+      #pragma omp parallel num_threads(procs)
+      {
+        #pragma omp for schedule(dynamic)
+        for(i = 0; i < L; ++i) { /* Paralelizável */
+          for (j = 0; j < H; j++) { /* Paralelizável */
+            updatePoint(i, j);
+          }
         }
       }
 
