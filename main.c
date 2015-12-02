@@ -130,6 +130,17 @@ int main(int argc, char const *argv[])
       hmax = 0;
 
       /* Atualiza os pontos */
+      /* 
+        real  0m5.560s 
+        user  0m5.081s
+        sys 0m0.107s
+
+        2 cores
+        real  0m3.161s
+        user  0m4.654s
+        sys 0m0.106s
+      */
+
       #pragma omp parallel num_threads(procs)
       {
         #pragma omp for schedule(dynamic)
