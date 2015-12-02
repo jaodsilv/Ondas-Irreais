@@ -1,0 +1,8 @@
+A função crítica que consome praticamente todo o tempo é a função de atualização dos pontos.
+
+A aplicação de paralelização (utilizando o OpenMP) nos outros laços não trouxe melhoria no desempenho.
+
+A aplicação de paralelização (utilizando o OpenMP) no laço de atualização dos pontos trouxe um aumento de desempenho considerável,
+entretanto o desempenho é inversamente proporcional ao número de gotas. Ainda, o algoritmo é indiferente ao tamanho do lago, porém é sensível ao tamanho da matriz.
+
+Seria possível, para um limiar de gotas, paralelizar o cálculo de gotas e obter um desempenho melhor?

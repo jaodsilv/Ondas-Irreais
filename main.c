@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
 
 #define t(step, timestep) step*timestep
 
@@ -57,6 +58,7 @@ void updatePoint(ui i, ui j)
     y = (drops[k].y - j) * pdisty;
     height += h(sqrt(x*x+y*y), t(steps, timestep));
   }
+
   if (height < e && height > -e) {
     lake[i][j] = 0;
     return;
@@ -105,6 +107,7 @@ int main(int argc, char const *argv[])
   {
     ui i, j;
     procs = atoi(argv[2]);
+
     fscanf (pFile, "(%u,%u)\n(%u,%u)\n", &larg, &alt, &L, &H);
     fscanf (pFile, "%u\n%u\n%f\n%u\n%f\n%u\n", &T, &v, &e, &N, &P, &s);
     fclose (pFile);
@@ -121,15 +124,17 @@ int main(int argc, char const *argv[])
     }
     drops = (drop*) malloc (N*sizeof(drop));
 
-
     pdistx = (float) larg / (float) L;
     pdisty = (float) alt / (float) H;
+
+    clock_t begin, end;
+    double time_spent, total_clock = 0;
 
     for (steps = 0; steps < N; ++steps) { /* Paralelizável, mas prioridade baixa */
       pmax = 0;
       hmax = 0;
 
-      /* Atualiza os pontos */
+      /* Atualiza os pontos: parte crítica */
       /* 
         real  0m5.560s 
         user  0m5.081s
@@ -140,16 +145,23 @@ int main(int argc, char const *argv[])
         user  0m4.654s
         sys 0m0.106s
       */
-
+    
+      begin = clock();
       #pragma omp parallel num_threads(procs)
       {
-        #pragma omp for schedule(dynamic)
+        #pragma omp for schedule(guided) private(j)
         for(i = 0; i < L; ++i) { /* Paralelizável */
           for (j = 0; j < H; j++) { /* Paralelizável */
             updatePoint(i, j);
           }
         }
       }
+
+      end = clock();
+      time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+      total_clock += time_spent;
+      printf("time: %f, %d\n", time_spent, ndrops);
+      fflush(stdout);
 
       /* Add drops */
       if (((float) rand())/RAND_MAX < P) {
@@ -160,6 +172,8 @@ int main(int argc, char const *argv[])
         drops[ndrops++] = d;
       }
     }
+
+    
 
     delta = fmaxf(hmax, pmax)/255;
 
@@ -173,9 +187,10 @@ int main(int argc, char const *argv[])
       }
       fprintf(PPMFile, "\n");
     }
-
-
     closeOutputFiles();
+
+    printf("total clock: %f\n", total_clock);
+
   }
   return 0;
 }
