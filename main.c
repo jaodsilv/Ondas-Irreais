@@ -18,7 +18,7 @@ typedef struct{
 } Point;
 
 /* Global Variables */
-ui larg, alt, L, H, T, v, N, s, steps, ndrops=0, pdistx, pdisty;
+ui larg, alt, L, H, T, v, N, seed, steps, ndrops=0, pdistx, pdisty;
 int procs;
 drop *drops;
 Point **points;
@@ -109,11 +109,10 @@ int main(int argc, char const *argv[])
     procs = atoi(argv[2]);
 
     fscanf (pFile, "(%u,%u)\n(%u,%u)\n", &larg, &alt, &L, &H);
-    fscanf (pFile, "%u\n%u\n%f\n%u\n%f\n%u\n", &T, &v, &e, &N, &P, &s);
+    fscanf (pFile, "%u\n%u\n%f\n%u\n%f\n%u\n", &T, &v, &e, &N, &P, &seed);
     fclose (pFile);
     timestep = ((float) T)/ ((float) N);
     P /= 100;
-    srand(s);
 
     /* Mallocs */
     lake = (float**) malloc (L*sizeof(float*));
@@ -135,8 +134,8 @@ int main(int argc, char const *argv[])
       hmax = 0;
 
       /* Atualiza os pontos: parte crítica */
-      /* 
-        real  0m5.560s 
+      /*
+        real  0m5.560s
         user  0m5.081s
         sys 0m0.107s
 
@@ -145,7 +144,7 @@ int main(int argc, char const *argv[])
         user  0m4.654s
         sys 0m0.106s
       */
-    
+
       begin = clock();
       #pragma omp parallel num_threads(procs)
       {
@@ -164,16 +163,16 @@ int main(int argc, char const *argv[])
       fflush(stdout);
 
       /* Add drops */
-      if (((float) rand())/RAND_MAX < P) {
+      if (((float) rand_r(&seed))/RAND_MAX < P) {
         drop d;
-        d.x = rand()%L;
-        d.y = rand()%H;
+        d.x = rand_r(&seed)%L;
+        d.y = rand_r(&seed)%H;
         d.step = steps;
         drops[ndrops++] = d;
       }
     }
 
-    
+
 
     delta = fmaxf(hmax, pmax)/255;
 
