@@ -52,15 +52,11 @@ void updatePoint(ui i, ui j)
   float height = 0;
   ui k;
   int x, y;
-    #pragma omp parallel num_threads(procs)
-      {
-        #pragma omp for schedule(dynamic) private(k)
   for (k = 0; k < ndrops; ++k) {
     x = (drops[k].x - i) * pdistx;
     y = (drops[k].y - j) * pdisty;
     height += h(sqrt(x*x+y*y), t(steps, timestep));
   }
-}
 
   if (height < e && height > -e) {
     lake[i][j] = 0;
@@ -129,9 +125,6 @@ int main(int argc, char const *argv[])
     pdistx = (float) larg / (float) L;
     pdisty = (float) alt / (float) H;
 
-    clock_t begin, end;
-    double time_spent, total_clock = 0;
-
     for (steps = 0; steps < N; ++steps) { /* Paralelizável, mas prioridade baixa */
       pmax = 0;
       hmax = 0;
@@ -148,7 +141,6 @@ int main(int argc, char const *argv[])
         sys 0m0.106s
       */
 
-      begin = clock();
       #pragma omp parallel num_threads(procs)
       {
         #pragma omp for schedule(dynamic) private(j)
@@ -158,12 +150,6 @@ int main(int argc, char const *argv[])
           }
         }
       }
-
-      end = clock();
-      time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-      total_clock += time_spent;
-      printf("time: %f, %d\n", time_spent, ndrops);
-      fflush(stdout);
 
       /* Add drops */
       if (((float) rand_r(&seed))/RAND_MAX < P) {
@@ -180,19 +166,20 @@ int main(int argc, char const *argv[])
     delta = fmaxf(hmax, pmax)/255;
 
     createOutputFiles();
-    for(i = 0; i < L; ++i) { /* Paralelizável */
-      for (j = 0; j < H; ++j) { /* Paralelizável */
-        evaluatePointForPPM(i, j);
-        /* Average and StdDev */
-        points[i][j].average /= N;
-        fprintf(averageFile, "%d %d %12.7f %12.7f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
+    #pragma omp parallel num_threads(procs)
+    {
+      #pragma omp for schedule(dynamic) private(j)
+      for(i = 0; i < L; ++i) { /* Paralelizável */
+        for (j = 0; j < H; ++j) { /* Paralelizável */
+          evaluatePointForPPM(i, j);
+          /* Average and StdDev */
+          points[i][j].average /= N;
+          fprintf(averageFile, "%d %d %12.7f %12.7f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
+        }
+        fprintf(PPMFile, "\n");
       }
-      fprintf(PPMFile, "\n");
     }
     closeOutputFiles();
-
-    printf("total clock: %f\n", total_clock);
-
   }
   return 0;
 }
