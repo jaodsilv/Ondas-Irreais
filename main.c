@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
-#include <time.h>
 
 #define t(step, timestep) step*timestep
 
@@ -166,18 +165,14 @@ int main(int argc, char const *argv[])
     delta = fmaxf(hmax, pmax)/255;
 
     createOutputFiles();
-    #pragma omp parallel num_threads(procs)
-    {
-      #pragma omp for schedule(dynamic) private(j)
-      for(i = 0; i < L; ++i) { /* Paralelizável */
-        for (j = 0; j < H; ++j) { /* Paralelizável */
-          evaluatePointForPPM(i, j);
-          /* Average and StdDev */
-          points[i][j].average /= N;
-          fprintf(averageFile, "%d %d %12.7f %12.7f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
-        }
-        fprintf(PPMFile, "\n");
+    for(i = 0; i < L; ++i) { /* Paralelizável */
+      for (j = 0; j < H; ++j) { /* Paralelizável */
+        evaluatePointForPPM(i, j);
+        /* Average and StdDev */
+        points[i][j].average /= N;
+        fprintf(averageFile, "%d %d %12.7f %12.7f\n", i, j, points[i][j].average, sqrt(points[i][j].sqrSum/N - points[i][j].average*points[i][j].average));
       }
+      fprintf(PPMFile, "\n");
     }
     closeOutputFiles();
   }
