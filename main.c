@@ -52,12 +52,15 @@ void updatePoint(ui i, ui j)
   float height = 0;
   ui k;
   int x, y;
-  /* Paralelizável */
+    #pragma omp parallel num_threads(procs)
+      {
+        #pragma omp for schedule(dynamic) private(k)
   for (k = 0; k < ndrops; ++k) {
     x = (drops[k].x - i) * pdistx;
     y = (drops[k].y - j) * pdisty;
     height += h(sqrt(x*x+y*y), t(steps, timestep));
   }
+}
 
   if (height < e && height > -e) {
     lake[i][j] = 0;
@@ -148,7 +151,7 @@ int main(int argc, char const *argv[])
       begin = clock();
       #pragma omp parallel num_threads(procs)
       {
-        #pragma omp for schedule(guided) private(j)
+        #pragma omp for schedule(dynamic) private(j)
         for(i = 0; i < L; ++i) { /* Paralelizável */
           for (j = 0; j < H; j++) { /* Paralelizável */
             updatePoint(i, j);
